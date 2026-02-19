@@ -92,13 +92,18 @@ export default function SyncPage() {
       })
       
       const result = await response.json()
-      
+      const tables = result.tables || []
+      const successCount = tables.filter((t: { status: string }) => t.status === '已同步').length
+      const failedCount = result.failed?.length ?? 0
+
       if (result.success) {
-        message.success(`已同步 ${result.tables?.length || 0} 个表的Schema`)
-        fetchTableList()
+        message.success(`已同步 ${successCount} 个表的Schema`)
+      } else if (successCount > 0) {
+        message.warning(`已同步 ${successCount} 个表${failedCount > 0 ? `，${failedCount} 个失败` : ''}`)
       } else {
-        throw new Error(result.error || '同步失败')
+        message.error(result.failed?.[0]?.error || result.error || '同步失败')
       }
+      fetchTableList()
     } catch (error) {
       message.error('同步失败：' + String(error))
       fetchTableList()

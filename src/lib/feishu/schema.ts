@@ -157,6 +157,7 @@ export async function getAllSchemas(): Promise<TableSchema[]> {
 
 /**
  * 获取所有表的基本信息（用于同步设置页面）
+ * 优先从内存缓存，未命中则读文件缓存（Vercel 同实例复用 /tmp），保证同步后刷新能正确显示
  */
 export async function getTableList(): Promise<Array<{
   tableId: string
@@ -165,37 +166,39 @@ export async function getTableList(): Promise<Array<{
   lastSyncedAt: string
   status: '已同步' | '未同步' | '未配置'
 }>> {
-  return SYNC_TABLES.map((table) => {
-    // 检查表是否已配置
-    if (!table.id) {
-      return {
-        tableId: table.key,
-        tableName: table.name,
-        fieldCount: 0,
-        lastSyncedAt: '请配置表ID',
-        status: '未配置' as const,
+  const results = await Promise.all(
+    SYNC_TABLES.map(async (table) => {
+      if (!table.id) {
+        return {
+          tableId: table.key,
+          tableName: table.name,
+          fieldCount: 0,
+          lastSyncedAt: '请配置表ID',
+          status: '未配置' as const,
+        }
       }
-    }
-    
-    const schema = schemaCache.get(table.id)
-    if (schema) {
+
+      const schema = await getTableSchema(table.id)
+      if (schema) {
+        return {
+          tableId: table.id,
+          tableName: schema.tableName,
+          fieldCount: schema.fields.length,
+          lastSyncedAt: new Date(schema.syncedAt).toLocaleString('zh-CN'),
+          status: '已同步' as const,
+        }
+      }
+
       return {
         tableId: table.id,
-        tableName: schema.tableName,
-        fieldCount: schema.fields.length,
-        lastSyncedAt: new Date(schema.syncedAt).toLocaleString('zh-CN'),
-        status: '已同步' as const,
+        tableName: table.name,
+        fieldCount: 0,
+        lastSyncedAt: '-',
+        status: '未同步' as const,
       }
-    }
-    
-    return {
-      tableId: table.id,
-      tableName: table.name,
-      fieldCount: 0,
-      lastSyncedAt: '-',
-      status: '未同步' as const,
-    }
-  })
+    })
+  )
+  return results
 }
 
 /**

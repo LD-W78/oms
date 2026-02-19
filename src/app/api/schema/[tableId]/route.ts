@@ -22,12 +22,16 @@ export async function GET(
       )
     }
 
-    const schema = await getTableSchema(tableId)
+    let schema = await getTableSchema(tableId)
     if (!schema) {
-      return NextResponse.json(
-        { tableId, tableName: '', fields: [], syncedAt: '', error: 'Schema not found. Sync schema in System > Sync.' },
-        { status: 200 }
-      )
+      try {
+        schema = await syncTableSchema(tableId)
+      } catch {
+        return NextResponse.json(
+          { tableId, tableName: '', fields: [], syncedAt: '', error: 'Schema not found. Sync schema in System > Sync.' },
+          { status: 200 }
+        )
+      }
     }
     return NextResponse.json(schema)
   } catch (error) {
