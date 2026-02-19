@@ -1,10 +1,10 @@
 import { z } from 'zod'
 
 const envSchema = z.object({
-  // Feishu credentials - optional for demo/development
-  FEISHU_APP_ID: z.string().optional().default(''),
-  FEISHU_APP_SECRET: z.string().optional().default(''),
-  FEISHU_BASE_APP_TOKEN: z.string().optional().default(''),
+  // Feishu credentials - optional for demo/development（trim 去除首尾空格，避免 invalid param）
+  FEISHU_APP_ID: z.string().optional().default('').transform((v) => (v || '').trim()),
+  FEISHU_APP_SECRET: z.string().optional().default('').transform((v) => (v || '').trim()),
+  FEISHU_BASE_APP_TOKEN: z.string().optional().default('').transform((v) => (v || '').trim()),
   FEISHU_BASE_URL: z.string().url().optional().default('https://open.feishu.cn/open-apis'),
   FEISHU_TABLE_ORDERS: z.string().optional(),
   FEISHU_TABLE_CUSTOMERS: z.string().optional(),

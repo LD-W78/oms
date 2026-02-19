@@ -47,8 +47,8 @@ class FeishuClient {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        app_id: env.FEISHU_APP_ID,
-        app_secret: env.FEISHU_APP_SECRET,
+        app_id: (env.FEISHU_APP_ID || '').trim(),
+        app_secret: (env.FEISHU_APP_SECRET || '').trim(),
       }),
     })
 
