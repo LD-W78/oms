@@ -145,7 +145,9 @@ export const useAuthStore = create<AuthState>()(
         if (allowed.includes('*')) return true
         if (allowed.includes(moduleKey)) return true
         const parent = moduleKey.split('.')[0]
-        return allowed.some(a => a === parent || a.startsWith(parent + '.'))
+        if (allowed.includes(parent)) return true
+        if (parent === moduleKey && allowed.some((a) => a.startsWith(parent + '.'))) return true
+        return false
       },
     }),
     {

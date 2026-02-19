@@ -94,5 +94,12 @@ export const MODULE_KEYS: { key: string; label: string }[] = [
   { key: 'finance.cash-flow', label: '银行流水' },
   { key: 'finance.business-analysis', label: '经营分析' },
   { key: 'feishu-sheet', label: '飞书表格' },
-  { key: 'system', label: '系统管理' },
+  { key: 'system', label: '系统管理（全部）' },
+  { key: 'system.users', label: '用户管理' },
+  { key: 'system.access-logs', label: '访问日志' },
+  { key: 'system.alerts', label: '预警设置' },
+  { key: 'system.data', label: '数据管理' },
+  { key: 'system.feishu', label: '飞书配置' },
+  { key: 'system.sync', label: '同步设置' },
+  { key: 'system.settings', label: '系统设置' },
 ]
