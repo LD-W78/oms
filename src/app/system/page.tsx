@@ -9,14 +9,12 @@ import {
   EditOutlined,
   SettingOutlined,
   SyncOutlined,
-  BugOutlined,
   HistoryOutlined,
 } from '@ant-design/icons'
 
 // 导入子页面组件
 import AccessLogsPage from './access-logs/page'
 import AlertsPage from './alerts/page'
-import DebugPage from './debug/page'
 import DataConfigPage from './data-config/page'
 import FeishuConfigPage from './feishu-config/page'
 import SyncPage from './sync/page'
@@ -82,16 +80,6 @@ const tabItems = [
       </span>
     ),
     children: <SyncPage />,
-  },
-  {
-    key: 'debug',
-    label: (
-      <span>
-        <BugOutlined />
-        <span style={{ marginLeft: 8 }}>调试</span>
-      </span>
-    ),
-    children: <DebugPage />,
   },
   {
     key: 'settings',

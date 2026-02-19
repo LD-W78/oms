@@ -258,19 +258,19 @@ function displayFromDataLayer(
   const dataKey = field.dataKey || field.fieldId || ''
   const fieldName = field.fieldName || ''
   const fieldId = field.fieldId || ''
-  const parsed = record && (record as ParsedOrderLike)._parsed
+  const parsed = record && (record as unknown as ParsedOrderLike)._parsed
   let raw =
     value ??
     record?.[fieldId] ??
     record?.[dataKey] ??
     record?.[fieldName] ??
     (parsed?.[fieldId] != null ? (parsed[fieldId].formatted ?? parsed[fieldId].parsed ?? parsed[fieldId].raw) : undefined) ??
-    (record as ParsedOrderLike)?._raw?.[fieldName] ??
-    (record as ParsedOrderLike)?._raw?.[fieldId] ??
-    (record as ParsedOrderLike)?._raw?.[dataKey]
+    (record as unknown as ParsedOrderLike)?._raw?.[fieldName] ??
+    (record as unknown as ParsedOrderLike)?._raw?.[fieldId] ??
+    (record as unknown as ParsedOrderLike)?._raw?.[dataKey]
   if (raw == null || raw === '') return '-'
   if (isPercentageField(field)) {
-    const pctParsed = record && (record as ParsedOrderLike)._parsed?.[fieldId]
+    const pctParsed = record && (record as unknown as ParsedOrderLike)._parsed?.[fieldId]
     if (pctParsed?.formatted != null && pctParsed.formatted !== '') return pctParsed.formatted
     if (typeof raw === 'object' && raw !== null && 'formatted' in raw) raw = (raw as { formatted?: unknown }).formatted
     if (typeof raw === 'object' && raw !== null && 'parsed' in raw) raw = (raw as { parsed?: unknown }).parsed
@@ -433,7 +433,7 @@ function createColumnFromField(
         const text = displayFromDataLayer(value, record, field)
         if (text === '-') return text
         if (isAmountOrPrice && currencyFieldId) {
-          const sym = getCurrencySymbol(record[currencyFieldId] ?? (record as ParsedOrderLike)?._raw?.[currencyFieldId])
+          const sym = getCurrencySymbol(record[currencyFieldId] ?? (record as unknown as ParsedOrderLike)?._raw?.[currencyFieldId])
           if (!sym) return text
           const textWithoutSymbol = text.replace(/^[$¥€£]\s*/, '')
           return `${sym}${textWithoutSymbol}`
@@ -633,15 +633,15 @@ export default function OrdersPage() {
 
   /** 弹窗分区块字段：基础信息、产品信息、商务信息、物流信息，按可见性与新增/编辑权限过滤 */
   const modalSections = useMemo(() => {
-    const filterByVisible = (list: Array<{ fieldId: string }>) => {
+    const filterByVisible = (list: FieldSchema[]) => {
       if (!list?.length) return []
       if (!moduleConfig || Object.keys(moduleConfig.fieldPermissions).length === 0) return list
       return list.filter((f) => moduleConfig.fieldPermissions[f.fieldId]?.visible !== false)
     }
-    const filterByPermission = (list: Array<{ fieldId: string }>) => {
+    const filterByPermission = (list: FieldSchema[]) => {
       if (!list?.length) return []
       return list.filter((f) => {
-        if (isFormulaField(f as FieldSchema) || isLinkField(f as FieldSchema)) return false
+        if (isFormulaField(f) || isLinkField(f)) return false
         if (!moduleConfig || Object.keys(moduleConfig.fieldPermissions).length === 0) return true
         const perm = moduleConfig.fieldPermissions[f.fieldId]
         return isEditMode ? perm?.edit !== false : perm?.create !== false
