@@ -4,7 +4,10 @@ import { promises as fs } from 'fs'
 import { join } from 'path'
 import type { TableSchema, FieldSchema } from '@/lib/feishu/schema'
 
-const CACHE_DIR = join(process.cwd(), 'config', '.schema-cache')
+// Vercel 文件系统只读，使用 /tmp 作为可写缓存目录
+const CACHE_DIR = process.env.VERCEL
+  ? join('/tmp', 'schema-cache')
+  : join(process.cwd(), 'config', '.schema-cache')
 
 interface SchemaCache {
   tableId: string
