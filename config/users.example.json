@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "users": [
+    { "id": "1", "username": "admin", "name": "管理员", "role": "admin", "password": "请修改", "enabled": true },
+    { "id": "2", "username": "sales", "name": "业务员", "role": "sales", "password": "请修改", "enabled": true },
+    { "id": "3", "username": "finance", "name": "财务", "role": "finance", "password": "请修改", "enabled": true }
+  ]
+}

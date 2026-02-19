@@ -1,0 +1,46 @@
+{
+  "version": "1.0",
+  "modules": {
+    "logistics": {
+      "moduleId": "logistics",
+      "moduleName": "物流跟踪",
+      "params": {
+        "arrivingDays": 7,
+        "delayDays": 3
+      },
+      "rules": [
+        {
+          "id": "logistics_delay",
+          "type": "error",
+          "label": "错误",
+          "condition": "超过到港日期 ≥ {delayDays} 天",
+          "conditionDesc": "超过到港日期 ≥ 3 天",
+          "message": "超过到港日期X天，请确认物流进度",
+          "threshold": 3,
+          "unit": "天",
+          "enabled": true
+        },
+        {
+          "id": "logistics_etd_eta",
+          "type": "warning",
+          "label": "警告",
+          "condition": "ETD 或 ETA 无效/缺失",
+          "conditionDesc": "ETD 或 ETA 无效/缺失",
+          "message": "请确认ETD/ETA时间",
+          "enabled": true
+        },
+        {
+          "id": "logistics_arriving",
+          "type": "info",
+          "label": "信息",
+          "condition": "未来 {arrivingDays} 天内到港（未到港）",
+          "conditionDesc": "未来 7 天内到港（未到港）",
+          "message": "请注意：货物在未来X天内到港",
+          "threshold": 7,
+          "unit": "天",
+          "enabled": true
+        }
+      ]
+    }
+  }
+}

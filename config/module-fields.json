@@ -1,0 +1,385 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-02-19T14:42:15.852Z",
+  "modules": [
+    {
+      "moduleId": "orders",
+      "moduleName": "订单管理",
+      "route": "/orders",
+      "icon": "shopping-cart",
+      "tableId": "tbl16urtK2gXVctO",
+      "fieldPermissions": {
+        "RITOS": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fld2zaQQmz": {
+          "visible": true,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fld99LOIOq": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        }
+      }
+    },
+    {
+      "moduleId": "logistics",
+      "moduleName": "物流跟踪",
+      "route": "/logistics",
+      "icon": "truck",
+      "tableId": "tbl16urtK2gXVctO",
+      "fieldPermissions": {
+        "货币": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "汇率": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "单价": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "付款：类型": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "进度": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "RITOS": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "退税": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "报价类型": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "毛利": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "毛利率": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "开票税率": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "退税额": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "采购成本": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "货代杂费": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "税费": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "海运及保险": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "其他费用": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "UpdateDate": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fld2zaQQmz": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldkcIVKBw": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fld7FsHPau": {
+          "visible": true,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fld1XYvWnD": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldL7E4qk2": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldWoYOqel": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fld8N53lIr": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldAt1nnXU": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "flduaTKT6g": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fld99LOIOq": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldkiY6bpc": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldzaE1uZ6": {
+          "visible": true,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldDRKHENu": {
+          "visible": true,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldlwMnM7N": {
+          "visible": true,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fld05WJlAO": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldVoeof50": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldyB0gVYc": {
+          "visible": true,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldl1VG4af": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        }
+      }
+    },
+    {
+      "moduleId": "finance-receivable",
+      "moduleName": "应收应付",
+      "route": "/finance/receivable",
+      "icon": "credit-card",
+      "tableId": "tbl16urtK2gXVctO",
+      "fieldPermissions": {
+        "fldKQfh6ih": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldjb0malr": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fld2J2qM30": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fld6rSqfQo": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldXhP48un": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldNvGvfpS": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldECQcHzN": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldcraxDs5": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "fldl1VG4af": {
+          "visible": false,
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        }
+      }
+    },
+    {
+      "moduleId": "finance-cashflow",
+      "moduleName": "现金流",
+      "route": "/finance/cashflow",
+      "icon": "dollar-sign",
+      "tableId": "tblxc7JL67ncE5is",
+      "fieldPermissions": {}
+    },
+    {
+      "moduleId": "finance-analysis",
+      "moduleName": "经营分析",
+      "route": "/finance/analysis",
+      "icon": "bar-chart-2",
+      "tableId": "tblr2OYvWfG7H5Hn",
+      "fieldPermissions": {}
+    }
+  ]
+}

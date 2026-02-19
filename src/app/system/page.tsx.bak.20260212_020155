@@ -1,0 +1,285 @@
+'use client'
+
+import { useState } from 'react'
+import { Card, Tabs, Table, Button, Avatar, Tag, Space, Switch, message, Row, Col, Statistic, Progress } from 'antd'
+import {
+  UserOutlined,
+  BellOutlined,
+  DatabaseOutlined,
+  EditOutlined,
+  SettingOutlined,
+  PlusOutlined,
+  SyncOutlined,
+  PlayCircleOutlined,
+} from '@ant-design/icons'
+
+import type { ColumnsType } from 'antd/es/table'
+
+const { TabPane } = Tabs
+
+interface User {
+  id: string
+  name: string
+  username: string
+  role: 'admin' | 'manager' | 'sales'
+  status: 'enabled' | 'disabled'
+}
+
+const users: User[] = [
+  { id: '1', name: 'fin', username: 'fin', role: 'sales', status: 'enabled' },
+  { id: '2', name: 'ritos', username: 'ritos', role: 'admin', status: 'enabled' },
+  { id: '3', name: 'sa', username: 'sa', role: 'sales', status: 'enabled' },
+]
+
+interface SyncLog {
+  key: string
+  syncTime: string
+  type: string
+  tables: string
+  records: number
+  status: string
+}
+
+const syncLogs: SyncLog[] = [
+  { key: '1', syncTime: '2024-01-31 10:30:15', type: '自动', tables: '客户,产品,订单', records: 156, status: '成功' },
+  { key: '2', syncTime: '2024-01-31 09:30:00', type: '自动', tables: '全部', records: 342, status: '成功' },
+  { key: '3', syncTime: '2024-01-30 18:00:00', type: '手动', tables: '供应商', records: 89, status: '成功' },
+]
+
+const roleColors: Record<string, string> = {
+  admin: '#dc2626',
+  manager: '#d97706',
+  sales: '#2563eb',
+}
+
+const roleBgs: Record<string, string> = {
+  admin: '#fee2e2',
+  manager: '#fef3c7',
+  sales: '#dbeafe',
+}
+
+const tabs = [
+  { key: 'users', label: '用户管理', icon: <UserOutlined /> },
+  { key: 'alerts', label: '预警设置', icon: <BellOutlined /> },
+  { key: 'data', label: '数据管理', icon: <DatabaseOutlined /> },
+  { key: 'feishu', label: '飞书配置', icon: <EditOutlined /> },
+  { key: 'sync', label: '同步设置', icon: <SyncOutlined /> },
+  { key: 'settings', label: '系统设置', icon: <SettingOutlined /> },
+]
+
+export default function SystemPage() {
+  const [activeTab, setActiveTab] = useState('users')
+
+  const userColumns: ColumnsType<User> = [
+    {
+      title: '用户',
+      dataIndex: 'name',
+      key: 'name',
+      render: (name: string) => (
+        <Space>
+          <Avatar style={{ background: '#1976d2', width: 32, height: 32 }}>
+            {name.charAt(0).toUpperCase()}
+          </Avatar>
+          <span style={{ fontWeight: 500 }}>{name}</span>
+        </Space>
+      ),
+    },
+    {
+      title: '角色',
+      dataIndex: 'role',
+      key: 'role',
+      render: (role: string) => (
+        <Tag
+          style={{
+            background: roleBgs[role],
+            color: roleColors[role],
+            border: 'none',
+            borderRadius: '4px',
+          }}
+        >
+          {role === 'admin' ? '管理员' : role === 'manager' ? '经理' : '销售'}
+        </Tag>
+      ),
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      render: () => (
+        <Tag style={{ background: '#d1fae5', color: '#059669', border: 'none', borderRadius: '4px' }}>
+          活跃
+        </Tag>
+      ),
+    },
+    {
+      title: '',
+      key: 'action',
+      align: 'right',
+      render: () => (
+        <Space size={4}>
+          <Button type="text" size="small" style={{ color: '#6b7280' }}>编辑</Button>
+          <Button type="text" size="small" style={{ color: '#6b7280' }}>查看</Button>
+          <Button type="text" size="small" danger>删除</Button>
+        </Space>
+      ),
+    },
+  ]
+
+  const syncLogColumns: ColumnsType<SyncLog> = [
+    { title: '同步时间', dataIndex: 'syncTime', key: 'syncTime' },
+    {
+      title: '类型',
+      dataIndex: 'type',
+      key: 'type',
+      render: (type: string) => (
+        <Tag color={type === '自动' ? 'blue' : 'green'}>{type}</Tag>
+      ),
+    },
+    { title: '同步表', dataIndex: 'tables', key: 'tables' },
+    { title: '记录数', dataIndex: 'records', key: 'records' },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string) => (
+        <Tag color={status === '成功' ? 'success' : 'error'}>{status}</Tag>
+      ),
+    },
+  ]
+
+  return (
+    <div style={{ padding: 24, background: '#f5f5f7', minHeight: '100%' }}>
+      <div style={{ marginBottom: 24 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#111827' }}>
+          系统管理
+        </h2>
+        <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: 13 }}>
+          系统设置、用户管理和数据配置
+        </p>
+      </div>
+
+      <Tabs
+        activeKey={activeTab}
+        onChange={(key) => setActiveTab(key)}
+        style={{ borderBottom: '1px solid #e5e7eb', marginBottom: 24 }}
+      >
+        {tabs.map((tab) => (
+          <TabPane
+            key={tab.key}
+            tab={
+              <span>
+                {tab.icon}
+                <span style={{ marginLeft: 8 }}>{tab.label}</span>
+              </span>
+            }
+          />
+        ))}
+      </Tabs>
+
+      {activeTab === 'users' && (
+        <Card style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>用户列表</div>
+            <Button type="primary" icon={<PlusOutlined />}>
+              新增用户
+            </Button>
+          </div>
+          <Table
+            columns={userColumns}
+            dataSource={users}
+            rowKey="id"
+            pagination={false}
+          />
+        </Card>
+      )}
+
+      {activeTab === 'alerts' && (
+        <Card style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', textAlign: 'center', padding: 60 }}>
+          <BellOutlined style={{ fontSize: 48, color: '#d1d5db', marginBottom: 16 }} />
+          <div style={{ color: '#6b7280' }}>预警设置功能开发中</div>
+        </Card>
+      )}
+
+      {activeTab === 'data' && (
+        <Card style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', textAlign: 'center', padding: 60 }}>
+          <DatabaseOutlined style={{ fontSize: 48, color: '#d1d5db', marginBottom: 16 }} />
+          <div style={{ color: '#6b7280' }}>数据管理功能开发中</div>
+        </Card>
+      )}
+
+      {activeTab === 'feishu' && (
+        <Card style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', textAlign: 'center', padding: 60 }}>
+          <EditOutlined style={{ fontSize: 48, color: '#d1d5db', marginBottom: 16 }} />
+          <div style={{ color: '#6b7280' }}>飞书配置功能开发中</div>
+        </Card>
+      )}
+
+      {activeTab === 'sync' && (
+        <Row gutter={24}>
+          <Col span={16}>
+            <Card style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginBottom: 16 }}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontWeight: 500, marginBottom: 8 }}>自动同步</div>
+                <Space>
+                  <Switch defaultChecked />
+                  <span>每4小时自动刷新缓存</span>
+                </Space>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontWeight: 500, marginBottom: 8 }}>实时API调用</div>
+                <div style={{ color: '#6b7280', fontSize: 13 }}>用户操作直接调用飞书API</div>
+              </div>
+              <div>
+                <Button type="primary" icon={<PlayCircleOutlined />}>
+                  立即同步
+                </Button>
+              </div>
+            </Card>
+            <Card style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+              <div style={{ fontWeight: 600, marginBottom: 16 }}>同步日志</div>
+              <Table
+                columns={syncLogColumns}
+                dataSource={syncLogs}
+                rowKey="key"
+                pagination={{ pageSize: 5 }}
+              />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginBottom: 16 }}>
+              <Statistic
+                title="今日同步次数"
+                value={12}
+                prefix={<SyncOutlined />}
+              />
+            </Card>
+            <Card style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginBottom: 16 }}>
+              <Statistic
+                title="今日同步记录"
+                value={2847}
+                suffix="条"
+              />
+            </Card>
+            <Card style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontWeight: 500, marginBottom: 8 }}>最近同步成功率</div>
+                <Progress percent={92} status="active" />
+              </div>
+              <div>
+                <div style={{ fontWeight: 500, marginBottom: 8 }}>最后同步时间</div>
+                <div style={{ color: '#6b7280', fontSize: 13 }}>2024-01-31 10:30:15</div>
+              </div>
+            </Card>
+          </Col>
+        </Row>
+      )}
+
+      {activeTab === 'settings' && (
+        <Card style={{ borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', textAlign: 'center', padding: 60 }}>
+          <SettingOutlined style={{ fontSize: 48, color: '#d1d5db', marginBottom: 16 }} />
+          <div style={{ color: '#6b7280' }}>系统设置功能开发中</div>
+        </Card>
+      )}
+    </div>
+  )
+}

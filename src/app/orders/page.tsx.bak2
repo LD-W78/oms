@@ -1,0 +1,608 @@
+'use client'
+
+import { useState, useEffect, useMemo } from 'react'
+import { App, Card, Table, Button, Input, Tag, Space, DatePicker, Modal, Form } from 'antd'
+const { MonthPicker } = DatePicker
+import {
+  PlusOutlined,
+  SearchOutlined,
+  ExportOutlined,
+  ShoppingCartOutlined,
+  FileTextOutlined,
+  DollarOutlined,
+  CheckCircleOutlined,
+  BankOutlined,
+  SafetyCertificateOutlined,
+} from '@ant-design/icons'
+import type { ColumnsType } from 'antd/es/table'
+
+import { useModuleConfig } from '@/app/hooks/useModuleConfig'
+import { useTableSchema, type FieldMeta } from '@/app/hooks/useTableSchema'
+import { formatFieldValue, getFieldAdapter } from '@/lib/feishu/field-adapters'
+import { isFormulaValue, formatFormulaValue } from '@/lib/feishu/formula-parser'
+import type { ParsedOrder } from '@/lib/feishu/orders'
+
+interface Order {
+  id: string
+  [key: string]: unknown
+}
+
+interface StatusCardConfig {
+  key: string
+  label: string
+  icon: React.ReactNode
+  color: string
+}
+
+const statusCardConfigs: StatusCardConfig[] = [
+  { key: 'all', label: '全部订单', icon: <ShoppingCartOutlined />, color: '#1976d2' },
+  { key: '签约中', label: '签约中', icon: <FileTextOutlined />, color: '#d97706' },
+  { key: '已签约', label: '已签约', icon: <CheckCircleOutlined />, color: '#2563eb' },
+  { key: '已收款', label: '已收款', icon: <DollarOutlined />, color: '#059669' },
+  { key: '已结款', label: '已结款', icon: <BankOutlined />, color: '#0891b2' },
+  { key: '待退税', label: '待退税', icon: <SafetyCertificateOutlined />, color: '#dc2626' },
+  { key: '已退税', label: '已退税', icon: <CheckCircleOutlined />, color: '#6b7280' },
+]
+
+interface OrderStats {
+  all: { count: number; amount: string }
+  签约中: { count: number; amount: string }
+  已签约: { count: number; amount: string }
+  已收款: { count: number; amount: string }
+  已结款: { count: number; amount: string }
+  待退税: { count: number; amount: string }
+  已退税: { count: number; amount: string }
+}
+
+function getStatusTag(status: string) {
+  const statusMap: Record<string, { color: string; bg: string }> = {
+    '签约中': { color: '#d97706', bg: '#fef3c7' },
+    '已签约': { color: '#2563eb', bg: '#dbeafe' },
+    '已收款': { color: '#059669', bg: '#d1fae5' },
+    '已结款': { color: '#0891b2', bg: '#cffafe' },
+    '待退税': { color: '#dc2626', bg: '#fee2e2' },
+    '已退税': { color: '#6b7280', bg: '#f3f4f6' },
+  }
+  const style = statusMap[status] || { color: '#6b7280', bg: '#f3f4f6' }
+  return (
+    <Tag
+      style={{
+        color: style.color,
+        backgroundColor: style.bg,
+        border: 'none',
+        borderRadius: '9999px',
+        padding: '4px 12px',
+        fontSize: '12px',
+        fontWeight: 500,
+      }}
+    >
+      {status}
+    </Tag>
+  )
+}
+
+function isCurrencyField(field: FieldMeta): boolean {
+  const fieldId = field.fieldId || ''
+  const fieldName = field.fieldName || ''
+  
+  return (
+    fieldId.includes('amount') || 
+    fieldId.includes('Amount') ||
+    fieldId.includes('Price') ||
+    fieldId.includes('price') ||
+    fieldId.includes('Cost') ||
+    fieldId.includes('cost') ||
+    fieldName.includes('金额') ||
+    fieldName.includes('价格') ||
+    fieldName.includes('成本') ||
+    fieldName.includes('毛利') ||
+    fieldName.includes('退税') ||
+    fieldName.includes('费用')
+  )
+}
+
+function isStatusField(field: FieldMeta): boolean {
+  const fieldId = field.fieldId || ''
+  const fieldName = field.fieldName || ''
+  const dataKey = field.dataKey || ''
+  
+  return (
+    dataKey === 'status' || 
+    fieldId.includes('status') || 
+    fieldId.includes('Status') || 
+    fieldName.includes('状态') ||
+    fieldName.includes('进度')
+  )
+}
+
+function getFieldFilters(orders: ParsedOrder[], dataKey: string): { text: string; value: string }[] {
+  const values = new Set<string>()
+  orders.forEach(order => {
+    const val = order[dataKey]
+    if (val !== null && val !== undefined && val !== '') {
+      values.add(String(val))
+    }
+  })
+  return Array.from(values).sort().map(v => ({ text: v, value: v }))
+}
+
+function createColumnFromField(
+  field: FieldMeta,
+  orders: ParsedOrder[]
+): ColumnsType<Order>[number] {
+  const fieldId = field.fieldId || ''
+  const dataKey = field.dataKey || fieldId
+  const fieldType = field.fieldType || 1
+
+  const baseColumn: ColumnsType<Order>[number] = {
+    title: field.fieldName || '未命名字段',
+    dataIndex: dataKey,
+    key: dataKey,
+    width: 150,
+  }
+
+  if (dataKey === 'id' || fieldId === '订单号') {
+    return {
+      ...baseColumn,
+      fixed: 'left',
+      width: 220,
+      render: (value: unknown) => (
+        <a style={{ color: '#1976d2', fontWeight: 500, cursor: 'pointer' }}>
+          {String(value)}
+        </a>
+      )
+    }
+  }
+
+  if (isStatusField(field)) {
+    return {
+      ...baseColumn,
+      render: (value: unknown) => getStatusTag(String(value)),
+      filters: getFieldFilters(orders, dataKey),
+      onFilter: (value, record) => record[dataKey] === value
+    }
+  }
+
+  const adapter = getFieldAdapter(fieldType)
+
+  switch (fieldType) {
+    case 2: {
+      const isCurrency = isCurrencyField(field)
+      return {
+        ...baseColumn,
+        align: 'right',
+        sorter: (a, b) => {
+          const aVal = adapter.getSortValue(a[dataKey])
+          const bVal = adapter.getSortValue(b[dataKey])
+          if (typeof aVal === 'number' && typeof bVal === 'number') {
+            return aVal - bVal
+          }
+          return String(aVal).localeCompare(String(bVal))
+        },
+        render: (value: unknown) => {
+          if (isFormulaValue(value)) {
+            return formatFormulaValue(value)
+          }
+          return adapter.format(value, { currency: isCurrency })
+        }
+      }
+    }
+
+    case 4: {
+      return {
+        ...baseColumn,
+        render: (value: unknown) => {
+          if (isFormulaValue(value)) {
+            return formatFormulaValue(value)
+          }
+          return adapter.format(value)
+        },
+        filters: getFieldFilters(orders, dataKey),
+        onFilter: (value, record) => {
+          const val = record[dataKey]
+          if (Array.isArray(val)) {
+            return val.includes(value)
+          }
+          return String(val) === value
+        }
+      }
+    }
+
+    case 5:
+    case 1001:
+    case 1002:
+      return {
+        ...baseColumn,
+        sorter: (a, b) => {
+          const aVal = adapter.getSortValue(a[dataKey])
+          const bVal = adapter.getSortValue(b[dataKey])
+          if (typeof aVal === 'number' && typeof bVal === 'number') {
+            return aVal - bVal
+          }
+          return String(aVal).localeCompare(String(bVal))
+        },
+        render: (value: unknown) => {
+          if (isFormulaValue(value)) {
+            return formatFormulaValue(value)
+          }
+          return adapter.format(value)
+        }
+      }
+
+    case 7:
+      return {
+        ...baseColumn,
+        align: 'center',
+        width: 100,
+        render: (value: unknown) => {
+          if (isFormulaValue(value)) {
+            return formatFormulaValue(value)
+          }
+          return adapter.format(value)
+        }
+      }
+
+    case 11:
+    case 1003:
+    case 1004:
+      return {
+        ...baseColumn,
+        render: (value: unknown) => {
+          if (isFormulaValue(value)) {
+            return formatFormulaValue(value)
+          }
+          return adapter.format(value)
+        }
+      }
+
+    case 15: {
+      return {
+        ...baseColumn,
+        render: (value: unknown) => {
+          if (isFormulaValue(value)) {
+            return formatFormulaValue(value)
+          }
+          if (value && typeof value === 'object' && 'link' in value) {
+            const link = value as { link: string; text: string }
+            return (
+              <a 
+                href={link.link} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ color: '#1976d2' }}
+              >
+                {link.text || link.link}
+              </a>
+            )
+          }
+          return adapter.format(value)
+        }
+      }
+    }
+
+    case 20:
+      return {
+        ...baseColumn,
+        render: (value: unknown) => {
+          if (isFormulaValue(value)) {
+            return formatFormulaValue(value)
+          }
+          return adapter.format(value)
+        }
+      }
+
+    default:
+      return {
+        ...baseColumn,
+        render: (value: unknown) => {
+          if (isFormulaValue(value)) {
+            return formatFormulaValue(value)
+          }
+          return adapter.format(value)
+        }
+      }
+  }
+}
+
+export default function OrdersPage() {
+  const { message } = App.useApp()
+  const { config: moduleConfig, loading: configLoading } = useModuleConfig('orders')
+  const { schema, loading: schemaLoading } = useTableSchema('tbl16urtK2gXVctO')
+  
+  const [orders, setOrders] = useState<ParsedOrder[]>([])
+  const [stats, setStats] = useState<OrderStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [activeStatus, setActiveStatus] = useState<string>('all')
+  const [searchText, setSearchText] = useState('')
+  const [monthFilter, setMonthFilter] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [form] = Form.useForm()
+
+  useEffect(() => {
+    fetchOrders()
+  }, [])
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/orders')
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const text = await response.text()
+      if (!text.trim()) {
+        setOrders([])
+        setStats(null)
+        return
+      }
+      
+      const data = JSON.parse(text)
+      if (Array.isArray(data.orders)) {
+        setOrders(data.orders as ParsedOrder[])
+      }
+      if (data.stats) {
+        setStats(data.stats)
+      }
+    } catch (error) {
+      console.error('Failed to fetch orders:', error)
+      message.error('加载订单数据失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const visibleFields = useMemo(() => {
+    if (!schema || !moduleConfig) return []
+    
+    return schema.fields.filter(field => {
+      const perm = moduleConfig.fieldPermissions[field.fieldId]
+      return perm?.visible !== false
+    })
+  }, [schema, moduleConfig])
+
+  const canCreate = useMemo(() => {
+    if (!moduleConfig) return true
+    return Object.values(moduleConfig.fieldPermissions).some(p => p.create)
+  }, [moduleConfig])
+
+  const columns = useMemo<ColumnsType<Order>>(() => {
+    if (!visibleFields.length) return []
+
+    return visibleFields.map(field => 
+      createColumnFromField(field, orders)
+    ) as ColumnsType<Order>
+  }, [visibleFields, orders])
+
+  const handleCardClick = (key: string) => {
+    setActiveStatus(key === activeStatus ? 'all' : key)
+  }
+
+  const filteredOrders = orders.filter((order) => {
+    const matchesStatus = activeStatus === 'all' || order.status === activeStatus
+    const matchesSearch = !searchText || Object.values(order).some(val => 
+      String(val).toLowerCase().includes(searchText.toLowerCase())
+    )
+    const matchesMonth = !monthFilter || 
+      (order.contractDate && order.contractDate.startsWith(monthFilter))
+    return matchesStatus && matchesSearch && matchesMonth
+  })
+
+  const getCardData = () => {
+    const defaultData = { count: 0, amount: '¥0' }
+    if (stats) {
+      return statusCardConfigs.map((config) => {
+        const key = config.key as keyof typeof stats
+        if (key === 'all') {
+          return { ...config, ...stats.all }
+        }
+        return { ...config, ...defaultData, ...stats[key] }
+      })
+    }
+    return statusCardConfigs.map((config) => ({
+      ...config,
+      ...defaultData,
+    }))
+  }
+
+  const creatableFields = useMemo(() => {
+    if (!schema || !moduleConfig) return []
+    
+    return schema.fields.filter(field => {
+      const perm = moduleConfig.fieldPermissions[field.fieldId]
+      return perm?.visible !== false && perm?.create !== false
+    })
+  }, [schema, moduleConfig])
+
+  const handleAddOrder = () => {
+    form.validateFields().then(async () => {
+      try {
+        message.success('订单创建成功')
+        setIsModalOpen(false)
+        form.resetFields()
+        fetchOrders()
+      } catch (error) {
+        console.error('Failed to create order:', error)
+        message.error('创建订单失败')
+      }
+    })
+  }
+
+  const renderFormField = (field: FieldMeta) => {
+    const rules: Array<{ required?: boolean; message?: string }> = []
+
+    switch (field.fieldType) {
+      case 1:
+      case 3:
+        return (
+          <Form.Item
+            key={field.fieldId}
+            name={field.fieldId}
+            label={field.fieldName}
+            rules={rules}
+          >
+            <Input placeholder={`请输入${field.fieldName}`} />
+          </Form.Item>
+        )
+      case 2:
+        return (
+          <Form.Item
+            key={field.fieldId}
+            name={field.fieldId}
+            label={field.fieldName}
+            rules={rules}
+          >
+            <Input type="number" placeholder={`请输入${field.fieldName}`} />
+          </Form.Item>
+        )
+      case 5:
+        return (
+          <Form.Item
+            key={field.fieldId}
+            name={field.fieldId}
+            label={field.fieldName}
+            rules={rules}
+          >
+            <DatePicker style={{ width: '100%' }} />
+          </Form.Item>
+        )
+      default:
+        return (
+          <Form.Item
+            key={field.fieldId}
+            name={field.fieldId}
+            label={field.fieldName}
+            rules={rules}
+          >
+            <Input placeholder={`请输入${field.fieldName}`} />
+          </Form.Item>
+        )
+    }
+  }
+
+  return (
+    <div style={{ padding: 24, background: '#f5f5f7', minHeight: '100%' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(7, 1fr)',
+          gap: 12,
+          marginBottom: 24,
+        }}
+      >
+        {getCardData().map((card) => (
+          <div
+            key={card.key}
+            onClick={() => handleCardClick(card.key)}
+            style={{
+              cursor: 'pointer',
+              background: activeStatus === card.key ? '#f0f7ff' : '#ffffff',
+              borderRadius: 12,
+              padding: '16px 12px',
+              border: activeStatus === card.key ? `2px solid ${card.color}` : '2px solid transparent',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                marginBottom: 8,
+              }}
+            >
+              <span style={{ color: card.color, fontSize: 14 }}>{card.icon}</span>
+              <span style={{ fontSize: 13, color: '#6b7280' }}>{card.label}</span>
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', marginBottom: 4 }}>
+              {loading ? '...' : card.count}
+            </div>
+            <div style={{ fontSize: 12, color: card.color }}>
+              {loading ? '...' : card.amount}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+        }}
+      >
+        <Input
+          placeholder="搜索订单号、客户或产品..."
+          prefix={<SearchOutlined style={{ color: '#6b7280' }} />}
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          style={{ width: 300, borderRadius: 8 }}
+          allowClear
+        />
+        <Space>
+          <MonthPicker
+            placeholder="按月份筛选"
+            style={{ borderRadius: 8 }}
+            onChange={(date) => {
+              if (date) {
+                const monthStr = date.format('YYYY-MM')
+                setMonthFilter(monthStr)
+              } else {
+                setMonthFilter(null)
+              }
+            }}
+          />
+          <Button icon={<ExportOutlined />} style={{ borderRadius: 8 }}>
+            导出
+          </Button>
+          {canCreate && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              style={{ borderRadius: 8 }}
+              onClick={() => setIsModalOpen(true)}
+            >
+              新增订单
+            </Button>
+          )}
+        </Space>
+      </div>
+
+      <Card
+        style={{
+          borderRadius: 8,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+        }}
+        styles={{ body: { padding: 0, overflow: 'auto' } }}
+      >
+        <Table
+          columns={columns}
+          dataSource={filteredOrders}
+          rowKey="id"
+          scroll={{ x: 1000, y: 'calc(100vh - 440px)' }}
+          loading={loading || configLoading || schemaLoading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total) => `共 ${total} 条`,
+          }}
+        />
+      </Card>
+
+      <Modal
+        title="新增订单"
+        open={isModalOpen}
+        onOk={handleAddOrder}
+        onCancel={() => setIsModalOpen(false)}
+        width={600}
+      >
+        <Form form={form} layout="vertical">
+          {creatableFields.map(renderFormField)}
+        </Form>
+      </Modal>
+    </div>
+  )
+}

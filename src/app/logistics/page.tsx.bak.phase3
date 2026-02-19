@@ -1,0 +1,795 @@
+'use client'
+
+import React, { useState, useEffect, useMemo } from 'react'
+import { App, Card, Tabs, Input, Button, Tag, Progress, Spin, Alert, DatePicker, Popover, Modal, Divider, Select, InputNumber, message, Row, Col } from 'antd'
+import type { LogisticsOrder } from '@/app/hooks/useLogisticsOrders'
+import { useTableSchema, type FieldMeta } from '@/app/hooks/useTableSchema'
+import type { Dayjs } from 'dayjs'
+import dayjs from 'dayjs'
+import {
+  SearchOutlined,
+  ReloadOutlined,
+  CalendarOutlined,
+  TruckOutlined,
+  WarningOutlined,
+  CheckCircleOutlined,
+  InboxOutlined,
+  GiftOutlined,
+  FileTextOutlined,
+  CarOutlined,
+  SafetyCertificateOutlined,
+  ShopOutlined,
+  FlagOutlined,
+  InfoCircleOutlined,
+  ExclamationCircleOutlined,
+  FieldTimeOutlined,
+  ContainerOutlined,
+  GlobalOutlined,
+  UserOutlined,
+} from '@ant-design/icons'
+import { useLogisticsOrders } from '@/app/hooks/useLogisticsOrders'
+
+function extractFieldValue(value: unknown): string {
+  if (!value) return '-'
+  if (Array.isArray(value) && value.length > 0) {
+    const first = value[0]
+    if (typeof first === 'object' && first !== null) {
+      return String((first as Record<string, unknown>).text || (first as Record<string, unknown>).name || '-')
+    }
+    return String(first)
+  }
+  if (typeof value === 'object' && value !== null) {
+    return String((value as Record<string, unknown>).text || (value as Record<string, unknown>).name || '-')
+  }
+  return String(value) || '-'
+}
+
+function getFieldDisplayValue(rawFields: Record<string, unknown>, fieldName: string): string {
+  const value = rawFields[fieldName]
+  return extractFieldValue(value)
+}
+
+function categorizeFields(fields: FieldMeta[], rawFields: Record<string, unknown>): {
+  basic: Array<{ name: string; label: string; value: string }>
+  logistics: Array<{ name: string; label: string; value: string }>
+  product: Array<{ name: string; label: string; value: string }>
+  financial: Array<{ name: string; label: string; value: string }>
+  other: Array<{ name: string; label: string; value: string }>
+} {
+  const basicFields = ['订单号', '客户', '产品', '详细规格', '销售', '业务员', '签约日', '创建时间', '更新时间']
+  const logisticsFields = ['物流进度', '物流', 'ETD', 'ETA', '预计离港', '预计到港', '出发地', '目的地', '起运港', '目的港', '提单BL', 'BL', '承运人', '货代', '船名', '船号', '航次', '箱号', '集装箱号', '箱型', '集装箱类型', '报关单号', '清关单号', '运输']
+  const productFields = ['数量', '件数', 'MTs', '单位', '规格', '型号']
+  const financialFields = ['订单金额', '订单金额CNY', '单价', '货币', '汇率', '采购成本', '运费', '海运费', '保险费', '保费', '货代杂费', '税费', '其他费用', '海运及保险', '毛利', '毛利率', '开票税率', '退税', '退税额']
+
+  const result = {
+    basic: [] as Array<{ name: string; label: string; value: string }>,
+    logistics: [] as Array<{ name: string; label: string; value: string }>,
+    product: [] as Array<{ name: string; label: string; value: string }>,
+    financial: [] as Array<{ name: string; label: string; value: string }>,
+    other: [] as Array<{ name: string; label: string; value: string }>,
+  }
+
+  fields.forEach((field) => {
+    const fieldName = field.fieldName
+    const value = getFieldDisplayValue(rawFields, fieldName)
+    if (value === '-' || value === '') return
+
+    const fieldData = { name: fieldName, label: fieldName, value }
+
+    if (basicFields.some(f => fieldName.includes(f))) {
+      result.basic.push(fieldData)
+    } else if (logisticsFields.some(f => fieldName.includes(f))) {
+      result.logistics.push(fieldData)
+    } else if (productFields.some(f => fieldName.includes(f))) {
+      result.product.push(fieldData)
+    } else if (financialFields.some(f => fieldName.includes(f))) {
+      result.financial.push(fieldData)
+    } else {
+      result.other.push(fieldData)
+    }
+  })
+
+  return result
+}
+
+const flowSteps = ['未发货', '已订舱', '已发货', '已清关', '已发船', '已到港']
+const statusOrder = ['未发货', '已订舱', '已发货', '已清关', '已发船', '已到港']
+
+const statusColors: Record<string, { bg: string; color: string }> = {
+  '未发货': { bg: '#f3f4f6', color: '#6b7280' },
+  '已发货': { bg: '#fef3c7', color: '#d97706' },
+  '已清关': { bg: '#dbeafe', color: '#2563eb' },
+  '已订舱': { bg: '#e0e7ff', color: '#4f46e5' },
+  '已发船': { bg: '#d1fae5', color: '#059669' },
+  '已到港': { bg: '#fce7f3', color: '#db2777' },
+}
+
+const guofengColors = [
+  { bg: 'rgba(232, 213, 196, 0.3)', activeBg: 'rgba(232, 213, 196, 0.8)', icon: GiftOutlined, label: '未发货' },
+  { bg: 'rgba(212, 229, 210, 0.3)', activeBg: 'rgba(212, 229, 210, 0.8)', icon: FileTextOutlined, label: '已订舱' },
+  { bg: 'rgba(232, 212, 212, 0.3)', activeBg: 'rgba(232, 212, 212, 0.8)', icon: CarOutlined, label: '已发货' },
+  { bg: 'rgba(212, 226, 232, 0.3)', activeBg: 'rgba(212, 226, 232, 0.8)', icon: SafetyCertificateOutlined, label: '已清关' },
+  { bg: 'rgba(232, 224, 212, 0.3)', activeBg: 'rgba(232, 224, 212, 0.8)', icon: ShopOutlined, label: '已发船' },
+  { bg: 'rgba(216, 212, 232, 0.3)', activeBg: 'rgba(216, 212, 232, 0.8)', icon: FlagOutlined, label: '已到港' },
+]
+
+export default function LogisticsPage() {
+  const { message } = App.useApp()
+  const { orders, loading, error, refetch, stats } = useLogisticsOrders()
+  const { schema } = useTableSchema(process.env.NEXT_PUBLIC_FEISHU_TABLE_ORDERS || 'tbl16urtK2gXVctO')
+  const [activeTab, setActiveTab] = useState('all')
+  const [searchText, setSearchText] = useState('')
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState<LogisticsOrder | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editForm, setEditForm] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState(false)
+
+  const handleOrderClick = (order: LogisticsOrder) => {
+    setSelectedOrder(order)
+    setModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setModalOpen(false)
+    setSelectedOrder(null)
+    setIsEditing(false)
+    setEditForm({})
+  }
+
+  const handleEdit = () => {
+    if (selectedOrder) {
+      const raw = selectedOrder.rawFields
+      const formData: Record<string, string> = {}
+      
+      Object.keys(raw).forEach(key => {
+        if (key !== 'recordId' && key !== 'id') {
+          const value = getFieldDisplayValue(raw, key)
+          formData[key] = value
+        }
+      })
+      
+      setEditForm(formData)
+      setIsEditing(true)
+    }
+  }
+
+  const handleSave = async () => {
+    if (!selectedOrder) return
+    
+    setSaving(true)
+    try {
+      const response = await fetch(`/api/orders/${selectedOrder.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editForm),
+      })
+
+      if (response.ok) {
+        message.success('保存成功')
+        setIsEditing(false)
+        refetch()
+        handleCloseModal()
+      } else {
+        message.error('保存失败')
+      }
+    } catch (error) {
+      message.error('保存失败，请重试')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    setEditForm({})
+  }
+
+  const filteredOrders = orders.filter(order => {
+    const matchesTab = activeTab === 'all' || order.status === activeTab
+    const matchesSearch = !searchText ||
+      order.orderNo.toLowerCase().includes(searchText.toLowerCase()) ||
+      order.company.toLowerCase().includes(searchText.toLowerCase()) ||
+      order.product.toLowerCase().includes(searchText.toLowerCase()) ||
+      order.spec.toLowerCase().includes(searchText.toLowerCase())
+    
+    let matchesMonth = true
+    if (selectedMonth) {
+      const orderEtdMonth = order.etd !== '-' ? order.etd.substring(0, 7) : null
+      const orderEtaMonth = order.eta !== '-' ? order.eta.substring(0, 7) : null
+      matchesMonth = orderEtdMonth === selectedMonth || orderEtaMonth === selectedMonth
+    }
+    
+    return matchesTab && matchesSearch && matchesMonth
+  }).sort((a, b) => {
+    const aHasAlert = !!a.alertMessage
+    const bHasAlert = !!b.alertMessage
+    const aArrived = a.status === '已到港'
+    const bArrived = b.status === '已到港'
+
+    if (aHasAlert && !bHasAlert) return -1
+    if (!aHasAlert && bHasAlert) return 1
+
+    if (!aArrived && bArrived) return -1
+    if (aArrived && !bArrived) return 1
+
+    return 0
+  })
+
+  const handleMonthChange = (date: Dayjs | null) => {
+    const monthStr = date ? date.format('YYYY-MM') : null
+    setSelectedMonth(monthStr)
+    setMonthPickerOpen(false)
+  }
+
+  const tabItems = [
+    { key: 'all', label: `全部订单 (${orders.length})` },
+    { key: '未发货', label: `未发货 (${orders.filter(o => o.status === '未发货').length})` },
+    { key: '已订舱', label: `已订舱 (${orders.filter(o => o.status === '已订舱').length})` },
+    { key: '已发货', label: `已发货 (${orders.filter(o => o.status === '已发货').length})` },
+    { key: '已清关', label: `已清关 (${orders.filter(o => o.status === '已清关').length})` },
+    { key: '已发船', label: `已发船 (${orders.filter(o => o.status === '已发船').length})` },
+    { key: '已到港', label: `已到港 (${orders.filter(o => o.status === '已到港').length})` },
+  ]
+
+  const handleRefresh = async () => {
+    await refetch()
+    message.success('数据已刷新')
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: 24 }}>
+        <Alert
+          message="数据加载失败"
+          description={error.message}
+          type="error"
+          showIcon
+          action={
+            <Button onClick={handleRefresh} type="primary">
+              重试
+            </Button>
+          }
+        />
+      </div>
+    )
+  }
+
+  const getFlowStatus = (status: string, step: string) => {
+    const currentIndex = statusOrder.indexOf(status)
+    const stepIndex = statusOrder.indexOf(step)
+    
+    if (stepIndex < currentIndex) return 'done'
+    if (stepIndex === currentIndex) return 'active'
+    return 'pending'
+  }
+
+  return (
+    <div style={{ padding: 24, background: '#f5f5f7', minHeight: '100%' }}>
+
+      {/* Stats Grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: 16,
+        marginBottom: 24
+      }}>
+        <Card
+          size="small"
+          style={{
+            background: '#ffffff',
+            border: 'none',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)',
+            borderRadius: 12,
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            cursor: 'pointer',
+          }}
+          styles={{ body: { padding: 16 } }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)'
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)'
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: 'rgba(25, 118, 210, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <TruckOutlined style={{ color: '#1976d2', fontSize: 18 }} />
+            </div>
+            <span style={{ fontSize: 13, color: '#6b7280' }}>在途订单总数</span>
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginBottom: 4 }}>
+            {loading ? <Spin size="small" /> : stats.total}
+          </div>
+          <div style={{ fontSize: 12, color: '#1976d2' }}>点击查看全部 →</div>
+        </Card>
+
+        <Card
+          size="small"
+          style={{
+            background: '#ffffff',
+            border: 'none',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)',
+            borderRadius: 12,
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            cursor: 'pointer',
+          }}
+          styles={{ body: { padding: 16 } }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)'
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)'
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: 'rgba(16, 185, 129, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <CheckCircleOutlined style={{ color: '#10b981', fontSize: 18 }} />
+            </div>
+            <span style={{ fontSize: 13, color: '#6b7280' }}>即将到港</span>
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginBottom: 4 }}>
+            {loading ? <Spin size="small" /> : stats.arriving}
+          </div>
+          <div style={{ fontSize: 12, color: '#6b7280' }}>未来7天内到港</div>
+        </Card>
+
+        <Card
+          size="small"
+          style={{
+            background: '#ffffff',
+            border: 'none',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)',
+            borderRadius: 12,
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            cursor: 'pointer',
+          }}
+          styles={{ body: { padding: 16 } }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)'
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)'
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: 'rgba(239, 68, 68, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <WarningOutlined style={{ color: '#ef4444', fontSize: 18 }} />
+            </div>
+            <span style={{ fontSize: 13, color: '#6b7280' }}>延误预警</span>
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginBottom: 4 }}>
+            {loading ? <Spin size="small" /> : stats.warning}
+          </div>
+          <div style={{ fontSize: 12, color: '#6b7280' }}>需要立即关注</div>
+        </Card>
+
+        <Card
+          size="small"
+          style={{
+            background: '#ffffff',
+            border: 'none',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)',
+            borderRadius: 12,
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            cursor: 'pointer',
+          }}
+          styles={{ body: { padding: 16 } }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)'
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)'
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: 'rgba(245, 158, 11, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <InboxOutlined style={{ color: '#f59e0b', fontSize: 18 }} />
+            </div>
+            <span style={{ fontSize: 13, color: '#6b7280' }}>清关处理中</span>
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginBottom: 4 }}>
+            {loading ? <Spin size="small" /> : stats.customs}
+          </div>
+          <div style={{ fontSize: 12, color: '#6b7280' }}>已发货未发船</div>
+        </Card>
+      </div>
+
+      {/* Progress Flow */}
+      <Card size="small" style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>物流状态流程</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {guofengColors.map((color, index) => {
+            const IconComponent = color.icon
+            const isActive = activeTab === color.label
+            const orderCount = orders.filter(o => o.status === color.label).length
+            const isLast = index === guofengColors.length - 1
+            return (
+              <div key={color.label} style={{ display: 'flex', alignItems: 'center' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 2,
+                    cursor: 'pointer',
+                    padding: '8px 16px',
+                    borderRadius: 6,
+                    background: isActive ? color.activeBg : color.bg,
+                    transition: 'all 0.3s',
+                    minWidth: 80,
+                  }}
+                  onClick={() => setActiveTab(isActive ? 'all' : color.label)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)'
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                >
+                  <div style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    background: isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: isActive ? '#374151' : '#6b7280',
+                  }}>
+                    <IconComponent style={{ fontSize: 14 }} />
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 11, color: '#374151', fontWeight: isActive ? 600 : 400 }}>
+                      {color.label}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#6b7280' }}>
+                      {orderCount}单
+                    </div>
+                  </div>
+                </div>
+                {!isLast && (
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#9ca3af',
+                    width: 24,
+                  }}>
+                    <span style={{ fontSize: 16, fontWeight: 300 }}>——</span>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </Card>
+
+      {/* Tabs */}
+      <Tabs 
+        activeKey={activeTab} 
+        onChange={setActiveTab} 
+        items={tabItems}
+        style={{ marginBottom: 16 }}
+      />
+
+      {/* Toolbar */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: 16 
+      }}>
+        <Input
+          placeholder="搜索订单号、客户或产品..."
+          prefix={<SearchOutlined style={{ color: '#6b7280' }} />}
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          style={{ width: 280, borderRadius: 8 }}
+          allowClear
+        />
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Popover
+            content={
+              <DatePicker
+                picker="month"
+                format="YYYY-MM"
+                onChange={handleMonthChange}
+                value={selectedMonth ? dayjs(selectedMonth) : null}
+                allowClear
+                autoFocus
+              />
+            }
+            trigger="click"
+            open={monthPickerOpen}
+            onOpenChange={setMonthPickerOpen}
+          >
+            <Button 
+              icon={<CalendarOutlined />}
+              type={selectedMonth ? 'primary' : 'default'}
+              style={{ borderRadius: 8 }}
+            >
+              {selectedMonth ? selectedMonth : '月历'}
+            </Button>
+          </Popover>
+          {selectedMonth && (
+            <Button 
+              size="small" 
+              onClick={() => setSelectedMonth(null)}
+              style={{ borderRadius: 4 }}
+            >
+              清除
+            </Button>
+          )}
+          <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading} style={{ borderRadius: 8 }}>
+            刷新
+          </Button>
+        </div>
+      </div>
+
+      {/* Order Cards */}
+      <Spin spinning={loading} description="加载中...">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {filteredOrders.map(order => (
+            <Card
+              key={order.id}
+              size="small"
+              style={{
+                borderRadius: 8,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onClick={() => handleOrderClick(order)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'
+                e.currentTarget.style.transform = 'translateY(-2px)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)'
+                e.currentTarget.style.transform = 'translateY(0)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: '#1976d2', marginBottom: 4 }}>
+                    {order.orderNo}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#6b7280' }}>{order.company}</div>
+                </div>
+                {order.alertMessage && (
+                  <div style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    fontSize: 12,
+                    color: order.alertType === 'error' ? '#dc2626' : order.alertType === 'warning' ? '#d97706' : '#2563eb',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                  }}>
+                    {order.alertType === 'error' ? (
+                      <ExclamationCircleOutlined style={{ fontSize: 14 }} />
+                    ) : order.alertType === 'warning' ? (
+                      <WarningOutlined style={{ fontSize: 14 }} />
+                    ) : (
+                      <InfoCircleOutlined style={{ fontSize: 14 }} />
+                    )}
+                    {order.alertMessage}
+                  </div>
+                )}
+                <Tag
+                  style={{
+                    borderRadius: 9999,
+                    border: 'none',
+                    background: statusColors[order.status].bg,
+                    color: statusColors[order.status].color,
+                    fontWeight: 500,
+                  }}
+                >
+                  {order.status}
+                </Tag>
+              </div>
+
+              <div style={{ fontSize: 14, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                {order.fromPort} <span style={{ color: '#6b7280', margin: '0 8px' }}>——</span> {order.toPort}
+              </div>
+
+              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 12, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                <span style={{ color: '#111827', fontWeight: 500 }}>{order.product}</span>
+                <span>{order.spec}</span>
+                <span>{order.carrier}</span>
+                <span>BL: {order.bl}</span>
+              </div>
+
+              <Progress
+                percent={order.progress}
+                strokeColor={order.alertType === 'error' ? '#ef4444' : order.alertType === 'warning' ? '#f59e0b' : '#1976d2'}
+                showInfo={false}
+                style={{ marginBottom: 8 }}
+              />
+
+              <div style={{
+                fontSize: 12,
+                color: '#6b7280',
+                display: 'flex',
+                justifyContent: 'space-between'
+              }}>
+                <span>ETD {order.etd}</span>
+                <span>{order.progress}%</span>
+                <span>ETA {order.eta}</span>
+              </div>
+            </Card>
+          ))}
+
+          {filteredOrders.length === 0 && !loading && (
+            <div style={{ textAlign: 'center', padding: 48, color: '#6b7280' }}>
+              暂无数据
+            </div>
+          )}
+        </div>
+      </Spin>
+
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 18, fontWeight: 600 }}>订单详情</span>
+            {selectedOrder && (
+              <Tag
+                style={{
+                  borderRadius: 9999,
+                  border: 'none',
+                  background: statusColors[selectedOrder.status].bg,
+                  color: statusColors[selectedOrder.status].color,
+                  fontWeight: 500,
+                }}
+              >
+                {selectedOrder.status}
+              </Tag>
+            )}
+          </div>
+        }
+        open={modalOpen}
+        onCancel={handleCloseModal}
+        footer={[
+          isEditing ? (
+            <React.Fragment key="editing">
+              <Button key="cancel" onClick={handleCancelEdit}>
+                取消
+              </Button>,
+              <Button key="save" type="primary" onClick={handleSave} loading={saving}>
+                保存
+              </Button>
+            </React.Fragment>
+          ) : (
+            <React.Fragment key="view">
+              <Button key="edit" type="primary" onClick={handleEdit}>
+                编辑
+              </Button>,
+              <Button key="close" onClick={handleCloseModal}>
+                关闭
+              </Button>
+            </React.Fragment>
+          ),
+        ]}
+        width={720}
+      >
+        {selectedOrder && (
+          <div style={{ padding: '16px 0' }}>
+            {selectedOrder.alertMessage && (
+              <div style={{
+                padding: '12px 16px',
+                borderRadius: 8,
+                background: selectedOrder.alertType === 'error' ? '#fef2f2' : selectedOrder.alertType === 'warning' ? '#fffbeb' : '#eff6ff',
+                color: selectedOrder.alertType === 'error' ? '#dc2626' : selectedOrder.alertType === 'warning' ? '#d97706' : '#2563eb',
+                marginBottom: 20,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontWeight: 500,
+              }}>
+                {selectedOrder.alertType === 'error' ? (
+                  <ExclamationCircleOutlined />
+                ) : selectedOrder.alertType === 'warning' ? (
+                  <WarningOutlined />
+                ) : (
+                  <InfoCircleOutlined />
+                )}
+                {selectedOrder.alertMessage}
+              </div>
+            )}
+
+            {(() => {
+              const fieldKeys = Object.keys(selectedOrder.rawFields).filter(k => k !== 'recordId' && k !== 'id')
+              
+              if (!isEditing) {
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    {fieldKeys.map((key) => {
+                      const value = getFieldDisplayValue(selectedOrder.rawFields, key)
+                      if (value === '-') return null
+                      return (
+                        <div key={key}>
+                          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>{key}</div>
+                          <div style={{ fontSize: 14, color: '#374151', fontWeight: 500 }}>{value}</div>
+                        </div>
+                      )
+                    })}
+                    <div>
+                      <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>物流进度</div>
+                      <div style={{ fontSize: 14, color: '#374151', fontWeight: 500 }}>{selectedOrder.progress}%</div>
+                    </div>
+                  </div>
+                )
+              }
+
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  {fieldKeys.map((key) => {
+                    const value = editForm[key] || getFieldDisplayValue(selectedOrder.rawFields, key)
+                    return (
+                      <div key={key}>
+                        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>{key}</div>
+                        <Input 
+                          value={value === '-' ? '' : value}
+                          onChange={(e) => setEditForm({ ...editForm, [key]: e.target.value })}
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
+          </div>
+        )}
+      </Modal>
+    </div>
+  )
+}
