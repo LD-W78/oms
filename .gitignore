@@ -54,6 +54,10 @@ config/access-logs.json
 # vercel
 .vercel
 
+# vscode
+.vscode/
+vscode:/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
