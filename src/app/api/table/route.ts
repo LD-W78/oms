@@ -11,10 +11,13 @@ export const revalidate = 0
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const tableId = searchParams.get('tableId')
+  const tableId = searchParams.get('tableId')?.trim()
 
-  if (!tableId?.trim()) {
-    return NextResponse.json({ error: 'tableId is required' }, { status: 400 })
+  if (!tableId) {
+    return NextResponse.json(
+      { schema: null, records: [], error: 'tableId is required' },
+      { status: 200, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
+    )
   }
 
   try {

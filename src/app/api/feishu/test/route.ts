@@ -9,10 +9,10 @@ export async function POST() {
     const appSecret = process.env.FEISHU_APP_SECRET
 
     if (!appId || !appSecret) {
-      return NextResponse.json(
-        { success: false, error: '缺少App ID或App Secret，请在 Vercel 环境变量中配置 FEISHU_APP_ID 和 FEISHU_APP_SECRET' },
-        { status: 400 }
-      )
+      return NextResponse.json({
+        success: false,
+        error: '缺少App ID或App Secret，请在 Vercel 环境变量中配置 FEISHU_APP_ID 和 FEISHU_APP_SECRET',
+      })
     }
 
     const baseUrl = process.env.FEISHU_BASE_URL || 'https://open.feishu.cn/open-apis'
@@ -28,17 +28,17 @@ export async function POST() {
     const tokenData = await tokenResponse.json().catch(() => ({})) as { code?: number; msg?: string; expire?: number }
 
     if (!tokenResponse.ok) {
-      return NextResponse.json(
-        { success: false, error: '获取Token失败: ' + (tokenData.msg || tokenResponse.statusText) },
-        { status: 400 }
-      )
+      return NextResponse.json({
+        success: false,
+        error: '获取Token失败: ' + (tokenData.msg || tokenResponse.statusText),
+      })
     }
 
     if (tokenData.code !== 0) {
-      return NextResponse.json(
-        { success: false, error: 'Token获取失败: ' + (tokenData.msg || '未知错误') },
-        { status: 400 }
-      )
+      return NextResponse.json({
+        success: false,
+        error: 'Token获取失败: ' + (tokenData.msg || '未知错误'),
+      })
     }
 
     return NextResponse.json({
