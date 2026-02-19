@@ -58,11 +58,7 @@ export default function SyncPage() {
       const response = await fetch('/api/feishu/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          appId: process.env.NEXT_PUBLIC_FEISHU_APP_ID,
-          appSecret: process.env.NEXT_PUBLIC_FEISHU_APP_SECRET,
-          appToken: process.env.NEXT_PUBLIC_FEISHU_APP_TOKEN,
-        })
+        body: '{}',
       })
       
       const result = await response.json()
