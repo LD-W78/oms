@@ -92,11 +92,13 @@ class FeishuClient {
       throw new Error(`Failed to get tables: ${tablesResponse.statusText}`)
     }
 
-    const tablesData = await tablesResponse.json()
-    const table = tablesData.data?.items?.find((t: any) => t.table_id === tableId)
-
+    const tablesData = (await tablesResponse.json()) as { code?: number; msg?: string; data?: { items?: Array<{ table_id: string; name?: string }> } }
+    if (tablesData.code != null && tablesData.code !== 0) {
+      throw new Error(tablesData.msg || `获取表列表失败(code:${tablesData.code})`)
+    }
+    const table = tablesData.data?.items?.find((t) => t.table_id === tableId)
     if (!table) {
-      throw new Error(`Table ${tableId} not found`)
+      throw new Error(`Table ${tableId} not found in base, 请检查 FEISHU_BASE_APP_TOKEN 与表ID是否匹配`)
     }
 
     // Step 2: Get table fields
@@ -121,7 +123,7 @@ class FeishuClient {
 
     return {
       table_id: tableId,
-      name: table.name,
+      name: table.name ?? tableId,
       fields: fields,
     }
   }

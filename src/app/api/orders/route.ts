@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     const fields = prepareFieldsForFeishu(body, schema ?? null)
     if (Object.keys(fields).length === 0) {
       return NextResponse.json(
-        { error: '没有可提交的字段，请检查表单或数据册配置' },
+        { error: schema ? '没有可提交的字段，请检查表单或数据册配置' : 'Schema 未同步，请先在系统管理-同步设置中执行「全部同步」' },
         { status: 400 }
       )
     }

@@ -90,10 +90,14 @@ export async function syncTableSchema(tableId: string): Promise<TableSchema> {
 
   // 更新内存缓存
   schemaCache.set(tableId, schema)
-  
-  // 写入文件缓存
-  await saveSchemaCache(schema)
-  
+
+  // 写入文件缓存（失败不阻塞，Vercel /tmp 偶发不可写时仍可继续）
+  try {
+    await saveSchemaCache(schema)
+  } catch (e) {
+    console.warn('[syncTableSchema] saveSchemaCache failed:', e)
+  }
+
   return schema
 }
 

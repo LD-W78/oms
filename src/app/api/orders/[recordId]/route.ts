@@ -38,7 +38,7 @@ export async function PUT(request: Request) {
     }
     if (!schema?.fields?.length) {
       return NextResponse.json(
-        { error: '无法获取数据册，请到「系统管理-数据配置」同步后重试' },
+        { error: 'Schema 未同步，请先在系统管理-同步设置中执行「全部同步」或单表同步' },
         { status: 503 }
       )
     }
