@@ -53,6 +53,7 @@ config/access-logs.json
 
 # vercel
 .vercel
+.env.vercel.*
 
 # vscode
 .vscode/

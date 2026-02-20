@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, Row, Col, Button, Table, Tag, App, Typography, Alert } from 'antd'
-import { SyncOutlined, ApiOutlined, TableOutlined, ReloadOutlined, SettingOutlined } from '@ant-design/icons'
+import { Card, Button, Table, Tag, App, Typography, Alert, Modal } from 'antd'
+import { SyncOutlined, ApiOutlined, TableOutlined, ReloadOutlined, SettingOutlined, BugOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 
 interface TableSchemaInfo {
@@ -19,6 +19,9 @@ export default function SyncPage() {
   const [tables, setTables] = useState<TableSchemaInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [testing, setTesting] = useState(false)
+  const [diagnosing, setDiagnosing] = useState(false)
+  const [diagnosticOpen, setDiagnosticOpen] = useState(false)
+  const [diagnosticResult, setDiagnosticResult] = useState<{ steps: Array<{ step: string; ok: boolean; message?: string }>; summary: string } | null>(null)
   const [syncingAll, setSyncingAll] = useState(false)
   const [syncingTable, setSyncingTable] = useState<string | null>(null)
 
@@ -75,6 +78,24 @@ export default function SyncPage() {
     }
   }
 
+  const handleDiagnostic = async () => {
+    setDiagnosing(true)
+    setDiagnosticOpen(true)
+    setDiagnosticResult(null)
+    try {
+      const response = await fetch('/api/feishu/sync-diagnostic')
+      const result = await response.json()
+      setDiagnosticResult(result)
+    } catch (error) {
+      setDiagnosticResult({
+        steps: [{ step: '请求失败', ok: false, message: String(error) }],
+        summary: '诊断请求异常',
+      })
+    } finally {
+      setDiagnosing(false)
+    }
+  }
+
   const handleSyncAll = async () => {
     const unconfiguredTables = tables.filter(t => t.status === '未配置')
     if (unconfiguredTables.length > 0) {
@@ -101,7 +122,9 @@ export default function SyncPage() {
       } else if (successCount > 0) {
         message.warning(`已同步 ${successCount} 个表${failedCount > 0 ? `，${failedCount} 个失败` : ''}`)
       } else {
-        message.error(result.failed?.[0]?.error || result.error || '同步失败')
+        const errMsg = result.failed?.[0]?.error || result.error || '同步失败'
+        message.error(errMsg)
+        message.info('可点击「同步诊断」查看详细排查建议', 5)
       }
       fetchTableList()
     } catch (error) {
@@ -237,6 +260,13 @@ export default function SyncPage() {
             测试连接
           </Button>
           <Button
+            icon={<BugOutlined />}
+            loading={diagnosing}
+            onClick={handleDiagnostic}
+          >
+            同步诊断
+          </Button>
+          <Button
             type="primary"
             icon={<SyncOutlined />}
             loading={syncingAll}
@@ -250,6 +280,31 @@ export default function SyncPage() {
           提示：当飞书表结构发生变更（如添加字段）后，点击"全部同步"或单表"刷新"更新Schema
         </Typography.Text>
       </Card>
+
+      <Modal
+        title="同步诊断"
+        open={diagnosticOpen}
+        onCancel={() => setDiagnosticOpen(false)}
+        footer={null}
+        width={560}
+      >
+        {diagnosticResult && (
+          <div>
+            <Alert
+              message={diagnosticResult.summary}
+              type={diagnosticResult.steps.every((s) => s.ok) ? 'success' : 'error'}
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+            {diagnosticResult.steps.map((s, i) => (
+              <div key={i} style={{ marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <Tag color={s.ok ? 'green' : 'red'}>{s.step}</Tag>
+                {s.message && <Typography.Text type="secondary">{s.message}</Typography.Text>}
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
 
       <Card title="各表Schema状态">
         <Table

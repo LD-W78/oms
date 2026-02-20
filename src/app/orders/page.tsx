@@ -862,8 +862,9 @@ export default function OrdersPage() {
   const handleAddNew = () => {
     setCurrentOrder(null)
     setIsEditMode(false)
-    form.resetFields()
     setIsModalOpen(true)
+    // 延后 resetFields，等 React 重渲染后 Form 的 initialValues 已为 undefined，再重置到空白
+    requestAnimationFrame(() => form.resetFields())
   }
 
   const handleModalOk = () => {
