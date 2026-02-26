@@ -354,6 +354,8 @@ export default function LogisticsPage() {
 
   const alertRules = useMemo<AlertRules>(() => getLogisticsAlertParams(), [])
   const [activeTab, setActiveTab] = useState('all')
+  /** 顶部 4 卡片筛选：all=全部 | arriving=即将到港 | warning=延误预警 | customs=清关处理中 */
+  const [cardFilter, setCardFilter] = useState<'all' | 'arriving' | 'warning' | 'customs'>('all')
   const [searchText, setSearchText] = useState('')
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
   const [monthPickerOpen, setMonthPickerOpen] = useState(false)
@@ -406,9 +408,14 @@ export default function LogisticsPage() {
     customs: orders.filter(o => o.status === '已发货' || o.status === '已清关').length,
   }), [orders])
 
-  // 筛选订单
+  // 筛选订单（顶部卡片 + Tab + 搜索 + 月历）
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
+      const matchesCard =
+        cardFilter === 'all' ||
+        (cardFilter === 'arriving' && (order.status === '已发船' || order.status === '已到港')) ||
+        (cardFilter === 'warning' && order.alertType === 'error') ||
+        (cardFilter === 'customs' && (order.status === '已发货' || order.status === '已清关'))
       const matchesTab = activeTab === 'all' || order.status === activeTab
       const matchesSearch = !searchText ||
         order.orderNo.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -423,7 +430,7 @@ export default function LogisticsPage() {
         matchesMonth = orderEtdMonth === selectedMonth || orderEtaMonth === selectedMonth
       }
 
-      return matchesTab && matchesSearch && matchesMonth
+      return matchesCard && matchesTab && matchesSearch && matchesMonth
     }).sort((a, b) => {
       const alertSortOrder = (o: LogisticsOrder) =>
         o.alertType === 'error' ? 0 : o.alertType === 'info' ? 1 : o.alertType === 'warning' ? 2 : 3
@@ -441,7 +448,7 @@ export default function LogisticsPage() {
 
       return 0
     })
-  }, [orders, activeTab, searchText, selectedMonth])
+  }, [orders, cardFilter, activeTab, searchText, selectedMonth])
 
   // Tab 项目
   const tabItems = [
@@ -565,14 +572,15 @@ export default function LogisticsPage() {
         <Card
           size="small"
           style={{
-            background: '#ffffff',
-            border: 'none',
+            background: cardFilter === 'all' ? 'rgba(25, 118, 210, 0.08)' : '#ffffff',
+            border: cardFilter === 'all' ? '2px solid #1976d2' : 'none',
             boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)',
             borderRadius: 12,
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             cursor: 'pointer',
           }}
           styles={{ body: { padding: 16 } }}
+          onClick={() => { setCardFilter('all'); setActiveTab('all') }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-4px)'
             e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06)'
@@ -605,14 +613,15 @@ export default function LogisticsPage() {
         <Card
           size="small"
           style={{
-            background: '#ffffff',
-            border: 'none',
+            background: cardFilter === 'arriving' ? 'rgba(16, 185, 129, 0.08)' : '#ffffff',
+            border: cardFilter === 'arriving' ? '2px solid #10b981' : 'none',
             boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)',
             borderRadius: 12,
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             cursor: 'pointer',
           }}
           styles={{ body: { padding: 16 } }}
+          onClick={() => { setCardFilter('arriving'); setActiveTab('all') }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-4px)'
             e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06)'
@@ -645,14 +654,15 @@ export default function LogisticsPage() {
         <Card
           size="small"
           style={{
-            background: '#ffffff',
-            border: 'none',
+            background: cardFilter === 'warning' ? 'rgba(239, 68, 68, 0.08)' : '#ffffff',
+            border: cardFilter === 'warning' ? '2px solid #ef4444' : 'none',
             boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)',
             borderRadius: 12,
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             cursor: 'pointer',
           }}
           styles={{ body: { padding: 16 } }}
+          onClick={() => { setCardFilter('warning'); setActiveTab('all') }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-4px)'
             e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06)'
@@ -685,14 +695,15 @@ export default function LogisticsPage() {
         <Card
           size="small"
           style={{
-            background: '#ffffff',
-            border: 'none',
+            background: cardFilter === 'customs' ? 'rgba(245, 158, 11, 0.08)' : '#ffffff',
+            border: cardFilter === 'customs' ? '2px solid #f59e0b' : 'none',
             boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)',
             borderRadius: 12,
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             cursor: 'pointer',
           }}
           styles={{ body: { padding: 16 } }}
+          onClick={() => { setCardFilter('customs'); setActiveTab('all') }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-4px)'
             e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06)'
@@ -748,7 +759,10 @@ export default function LogisticsPage() {
                     transition: 'all 0.3s',
                     minWidth: 0,
                   }}
-                  onClick={() => setActiveTab(isActive ? 'all' : color.label)}
+                  onClick={() => {
+                    setActiveTab(isActive ? 'all' : color.label)
+                    setCardFilter('all')
+                  }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'scale(1.05)'
                     e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
@@ -826,7 +840,7 @@ export default function LogisticsPage() {
       {/* Tabs */}
       <Tabs 
         activeKey={activeTab} 
-        onChange={setActiveTab} 
+        onChange={(k) => { setActiveTab(k); setCardFilter('all') }} 
         items={tabItems}
         style={{ marginBottom: 16 }}
       />

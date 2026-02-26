@@ -21,6 +21,7 @@ npm run dev
 
 ## 文档
 
+- [技术白皮书](docs/OMS技术白皮书.md)
 - [部署指南](docs/deployment.md)
 - [飞书配置](docs/feishu-setup.md)
 - [用户手册](docs/user-guide.md)
