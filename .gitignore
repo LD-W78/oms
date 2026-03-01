@@ -22,6 +22,9 @@
 
 # misc
 .DS_Store
+tmp/
+__pycache__/
+*.pyc
 *.pem
 
 # debug
@@ -46,6 +49,7 @@ config/access-logs.json
 
 # env files (can opt-in for committing if needed)
 .env.local
+.feishu_credentials
 .env.development.local
 .env.test.local
 .env.production.local
@@ -62,3 +66,40 @@ vscode:/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI tools
+.adal/
+.agent/
+.agents/
+.augment/
+.claude/
+.cline/
+.codebuddy/
+.commandcode/
+.continue/
+.crush/
+.cursor/
+.factory/
+.goose/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.openhands/
+.pi/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.sisyphus/
+.trae/
+.vibe/
+.windsurf/
+.zencoder/
+
+# Skills (project specific)
+skills/
+

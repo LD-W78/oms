@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "lastUpdated": "2026-02-19T14:42:15.852Z",
+  "lastUpdated": "2026-02-28T15:05:17.027Z",
   "modules": [
     {
       "moduleId": "orders",
@@ -370,8 +370,114 @@
       "moduleName": "现金流",
       "route": "/finance/cashflow",
       "icon": "dollar-sign",
-      "tableId": "tblxc7JL67ncE5is",
-      "fieldPermissions": {}
+      "tableId": "tblPWmxgCe22gkqU",
+      "fieldPermissions": {
+        "fld9lxhlg9": {
+          "visible": true,
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "fldS4AOEJf": {
+          "visible": true,
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "fldyfkDa2K": {
+          "visible": true,
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "fldeGVhSrt": {
+          "visible": true,
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "flddDikD8Z": {
+          "visible": true,
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "fldgzRylKx": {
+          "visible": true,
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "fldAqB5pgG": {
+          "visible": true,
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "fld4YbcH8a": {
+          "visible": true,
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "fldIe2eFOd": {
+          "visible": true,
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "fldbTPL0aR": {
+          "visible": true,
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "fldplt6OJM": {
+          "visible": true,
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "fldgXSaXq6": {
+          "visible": true,
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "fldFQCZwr4": {
+          "visible": true,
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "fld6ZzLqLJ": {
+          "visible": true,
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "fldZkD8Z8O": {
+          "visible": true,
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        }
+      }
     },
     {
       "moduleId": "finance-analysis",

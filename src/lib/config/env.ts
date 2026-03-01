@@ -5,6 +5,8 @@ const envSchema = z.object({
   FEISHU_APP_ID: z.string().optional().default('').transform((v) => (v || '').trim()),
   FEISHU_APP_SECRET: z.string().optional().default('').transform((v) => (v || '').trim()),
   FEISHU_BASE_APP_TOKEN: z.string().optional().default('').transform((v) => (v || '').trim()),
+  /** 现金表所在 Base 的 app_token，若配置则现金表请求使用此 token */
+  FEISHU_CASH_FLOW_BASE_TOKEN: z.string().optional().default('').transform((v) => (v || '').trim()),
   FEISHU_BASE_URL: z.string().url().optional().default('https://open.feishu.cn/open-apis'),
   FEISHU_TABLE_ORDERS: z.string().optional(),
   FEISHU_TABLE_CUSTOMERS: z.string().optional(),
@@ -62,3 +64,12 @@ export const TABLE_IDS = {
   salesDashboard: serverTableIds.salesDashboard,
   operationsDashboard: serverTableIds.operationsDashboard,
 } as const
+
+/** 按表 ID 选择 base token：现金表使用独立 base，其余使用默认 base */
+export function getBaseTokenForTableId(tableId: string): string {
+  const cashFlowId = (env.FEISHU_TABLE_CASH_FLOW || env.NEXT_PUBLIC_FEISHU_TABLE_CASH_FLOW || '').trim()
+  if (cashFlowId && tableId === cashFlowId && env.FEISHU_CASH_FLOW_BASE_TOKEN) {
+    return env.FEISHU_CASH_FLOW_BASE_TOKEN
+  }
+  return env.FEISHU_BASE_APP_TOKEN || ''
+}

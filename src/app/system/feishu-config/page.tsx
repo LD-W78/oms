@@ -8,6 +8,7 @@ interface FeishuConfig {
   appId: string
   appSecret: string
   appToken: string
+  cashFlowBaseToken: string
   tableOrders: string
   tableCashFlow: string
   tableFinance: string
@@ -30,29 +31,17 @@ export default function FeishuConfigPage() {
     loadConfig()
   }, [])
 
-  const loadConfig = () => {
+  const loadConfig = async () => {
     setLoading(true)
-    
-    const configData: FeishuConfig = {
-      appId: process.env.NEXT_PUBLIC_FEISHU_APP_ID || '',
-      appSecret: process.env.NEXT_PUBLIC_FEISHU_APP_SECRET || '',
-      appToken: process.env.NEXT_PUBLIC_FEISHU_APP_TOKEN || '',
-      tableOrders: process.env.NEXT_PUBLIC_FEISHU_TABLE_ORDERS || '',
-      tableCashFlow: process.env.NEXT_PUBLIC_FEISHU_TABLE_CASH_FLOW || '',
-      tableFinance: process.env.NEXT_PUBLIC_FEISHU_TABLE_FINANCE || '',
-      baseUrl: process.env.NEXT_PUBLIC_FEISHU_BASE_URL || '',
-      dashboardUrl: process.env.NEXT_PUBLIC_FEISHU_DASHBOARD_URL || '',
-      iframeUrls: {
-        suppliers: process.env.NEXT_PUBLIC_FEISHU_TABLE_SUPPLIERS_URL || '',
-        customers: process.env.NEXT_PUBLIC_FEISHU_TABLE_CUSTOMERS_URL || '',
-        products: process.env.NEXT_PUBLIC_FEISHU_TABLE_PRODUCTS_URL || '',
-        operations: process.env.NEXT_PUBLIC_FEISHU_OPERATIONS_URL || '',
-        dashboard: process.env.NEXT_PUBLIC_FEISHU_DASHBOARD_URL || '',
-      }
+    try {
+      const res = await fetch('/api/config/feishu', { cache: 'no-store' })
+      const data = await res.json()
+      setConfig(data as FeishuConfig)
+    } catch {
+      setConfig(null)
+    } finally {
+      setLoading(false)
     }
-    
-    setConfig(configData)
-    setLoading(false)
   }
 
   const renderConfigItem = (label: string, value: string) => (
@@ -96,7 +85,8 @@ export default function FeishuConfigPage() {
           <Card title="应用凭证" size="small">
             {renderConfigItem('App ID', config.appId)}
             {renderConfigItem('App Secret', config.appSecret)}
-            {renderConfigItem('App Token', config.appToken)}
+            {renderConfigItem('App Token（默认 Base）', config.appToken)}
+            {renderConfigItem('现金表 Base Token', config.cashFlowBaseToken)}
             {renderConfigItem('Base URL', config.baseUrl)}
           </Card>
         </Col>
@@ -104,7 +94,7 @@ export default function FeishuConfigPage() {
         <Col span={12}>
           <Card title="数据表配置（API方式）" size="small">
             {renderConfigItem('应收应付/订单表 ID (oms订单表)', config.tableOrders)}
-            {renderConfigItem('银行流水 ID (oms现金表)', config.tableCashFlow)}
+            {renderConfigItem('银行流水 ID（自动汇总现金表）', config.tableCashFlow)}
             {renderConfigItem('经营分析表 ID (oms财务表)', config.tableFinance)}
           </Card>
         </Col>

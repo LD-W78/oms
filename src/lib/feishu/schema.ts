@@ -1,4 +1,4 @@
-import { feishuClient } from '@/lib/feishu/client'
+import { feishuClient, type FeishuField } from '@/lib/feishu/client'
 import { TABLE_IDS } from '@/lib/config/env'
 import { saveSchemaCache, getSchemaCache } from './schema-cache'
 import type { TableSchema, FieldSchema, TableSchemaStats, FieldCategory, FieldFormat } from './types'
@@ -21,15 +21,14 @@ const schemaCache: Map<string, TableSchema> = new Map()
 // 说明：物流跟踪模块使用订单表数据，因此不再单独配置/同步「物流表」
 const SYNC_TABLES = [
   { id: TABLE_IDS.orders, name: 'oms订单表', key: 'orders' },
-  { id: TABLE_IDS.cashFlow, name: 'oms现金表', key: 'cashFlow' },
+  { id: TABLE_IDS.cashFlow, name: '自动汇总现金表', key: 'cashFlow' },
   { id: TABLE_IDS.finance, name: 'oms财务表', key: 'finance' },
 ] as const
 
-const tableIdToName: Record<string, string> = {
-  [TABLE_IDS.orders || '']: 'oms订单表',
-  [TABLE_IDS.cashFlow || '']: 'oms现金表',
-  [TABLE_IDS.finance || '']: 'oms财务表',
-}
+const tableIdToName: Record<string, string> = {}
+if (TABLE_IDS.orders) tableIdToName[TABLE_IDS.orders] = 'oms订单表'
+if (TABLE_IDS.cashFlow) tableIdToName[TABLE_IDS.cashFlow] = '自动汇总现金表'
+if (TABLE_IDS.finance) tableIdToName[TABLE_IDS.finance] = 'oms财务表'
 
 function getDataKey(fieldName: string): string {
   const chineseCharCount = (fieldName.match(/[\u4e00-\u9fa5]/g) || []).length
@@ -75,7 +74,7 @@ export async function syncTableSchema(tableId: string): Promise<TableSchema> {
   const schema: TableSchema = {
     tableId: feishuSchema.table_id,
     tableName: feishuSchema.name || tableIdToName[tableId] || tableId,
-    fields: feishuSchema.fields.map((field: any) => ({
+    fields: feishuSchema.fields.map((field: FeishuField) => ({
       fieldId: field.field_id ?? field.field_name,
       fieldName: field.field_name,
       dataKey: getDataKey(field.field_name),

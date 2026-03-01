@@ -1,4 +1,4 @@
-import { env } from '@/lib/config/env'
+import { env, getBaseTokenForTableId } from '@/lib/config/env'
 
 interface FeishuToken {
   app_access_token: string
@@ -24,6 +24,18 @@ interface FeishuField {
   is_extend?: boolean
   ui_type?: string
   /** 单选/多选等字段的配置，含 options 菜单项，以飞书配置为准 */
+  property?: Record<string, unknown>
+}
+
+/** 飞书 API 返回的 field 原始结构 */
+interface FeishuApiField {
+  field_id?: string
+  field_name?: string
+  field_type?: number
+  type?: number
+  is_primary?: boolean
+  is_extend?: boolean
+  ui_type?: string
   property?: Record<string, unknown>
 }
 
@@ -83,7 +95,8 @@ class FeishuClient {
     const token = await this.getAppToken()
 
     // Step 1: Get table list to find table name
-    const tablesUrl = `${this.baseUrl}/bitable/v1/apps/${env.FEISHU_BASE_APP_TOKEN}/tables`
+    const baseToken = getBaseTokenForTableId(tableId)
+    const tablesUrl = `${this.baseUrl}/bitable/v1/apps/${baseToken}/tables`
     const tablesResponse = await fetch(tablesUrl, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -102,7 +115,7 @@ class FeishuClient {
     }
 
     // Step 2: Get table fields
-    const fieldsUrl = `${this.baseUrl}/bitable/v1/apps/${env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/fields`
+    const fieldsUrl = `${this.baseUrl}/bitable/v1/apps/${baseToken}/tables/${tableId}/fields`
     const fieldsResponse = await fetch(fieldsUrl, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -110,10 +123,10 @@ class FeishuClient {
     let fields: FeishuField[] = []
     if (fieldsResponse.ok) {
       const fieldsData = await fieldsResponse.json()
-      fields = (fieldsData.data?.items ?? []).map((f: any) => ({
+      fields = (fieldsData.data?.items ?? []).map((f: FeishuApiField) => ({
         field_id: f.field_id,
-        field_name: f.field_name,
-        field_type: f.field_type ?? f.type,
+        field_name: f.field_name ?? '',
+        field_type: String(f.field_type ?? f.type ?? 1),
         is_primary: f.is_primary,
         is_extend: f.is_extend,
         ui_type: f.ui_type,
@@ -143,8 +156,9 @@ class FeishuClient {
     if (options?.pageToken) params.set('page_token', options.pageToken)
     if (options?.filter) params.set('filter', options.filter)
 
+    const baseToken = getBaseTokenForTableId(tableId)
     const response = await fetch(
-      `${this.baseUrl}/bitable/v1/apps/${env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records?${params}`,
+      `${this.baseUrl}/bitable/v1/apps/${baseToken}/tables/${tableId}/records?${params}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -169,9 +183,9 @@ class FeishuClient {
    */
   async getRecord(tableId: string, recordId: string): Promise<FeishuRecord> {
     const token = await this.getAppToken()
-    
+    const baseToken = getBaseTokenForTableId(tableId)
     const response = await fetch(
-      `${this.baseUrl}/bitable/v1/apps/${env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/${recordId}`,
+      `${this.baseUrl}/bitable/v1/apps/${baseToken}/tables/${tableId}/records/${recordId}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -196,8 +210,9 @@ class FeishuClient {
    */
   async createRecord(tableId: string, fields: Record<string, unknown>): Promise<FeishuRecord> {
     const token = await this.getAppToken()
+    const baseToken = getBaseTokenForTableId(tableId)
     const response = await fetch(
-      `${this.baseUrl}/bitable/v1/apps/${env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records`,
+      `${this.baseUrl}/bitable/v1/apps/${baseToken}/tables/${tableId}/records`,
       {
         method: 'POST',
         headers: {
@@ -227,8 +242,9 @@ class FeishuClient {
    */
   async updateRecord(tableId: string, recordId: string, fields: Record<string, unknown>): Promise<FeishuRecord> {
     const token = await this.getAppToken()
+    const baseToken = getBaseTokenForTableId(tableId)
     const response = await fetch(
-      `${this.baseUrl}/bitable/v1/apps/${env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/${recordId}`,
+      `${this.baseUrl}/bitable/v1/apps/${baseToken}/tables/${tableId}/records/${recordId}`,
       {
         method: 'PUT',
         headers: {
@@ -260,9 +276,9 @@ class FeishuClient {
    */
   async deleteRecord(tableId: string, recordId: string): Promise<void> {
     const token = await this.getAppToken()
-    
+    const baseToken = getBaseTokenForTableId(tableId)
     const response = await fetch(
-      `${this.baseUrl}/bitable/v1/apps/${env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/${recordId}`,
+      `${this.baseUrl}/bitable/v1/apps/${baseToken}/tables/${tableId}/records/${recordId}`,
       {
         method: 'DELETE',
         headers: {
@@ -281,9 +297,9 @@ class FeishuClient {
    */
   async batchDeleteRecords(tableId: string, recordIds: string[]): Promise<void> {
     const token = await this.getAppToken()
-    
+    const baseToken = getBaseTokenForTableId(tableId)
     const response = await fetch(
-      `${this.baseUrl}/bitable/v1/apps/${env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/batch_delete`,
+      `${this.baseUrl}/bitable/v1/apps/${baseToken}/tables/${tableId}/records/batch_delete`,
       {
         method: 'POST',
         headers: {

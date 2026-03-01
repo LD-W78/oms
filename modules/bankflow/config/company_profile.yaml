@@ -1,0 +1,40 @@
+companies:
+  QD:
+    name: 青岛瑞拓思进出口有限公司
+    accounts:
+    - bank: 中国银行股份有限公司青岛升平路支行
+      bank_code: ZH
+      account: '205253912027'
+      currency: RMB
+      source_prefix: QD_ZH_RMB
+    - bank: 中国建设银行股份有限公司青岛西海岸新区分行
+      bank_code: JH
+      account: '37150198811000006579'
+      currency: RMB
+      source_prefix: QD_JH_RMB
+    - bank: 中国建设银行股份有限公司青岛西海岸新区分行
+      bank_code: JH
+      account: '37150198811000006593'
+      currency: USD
+      source_prefix: QD_JH_USD
+    - bank: VTB上海分行
+      bank_code: VTB
+      account: '40807156000610031039'
+      currency: RMB
+      source_prefix: QD_VTB_RMB
+  BJ:
+    name: 瑞拓思（北京）科技有限公司
+    accounts:
+    - bank: 中国银行股份有限公司北京学清路支行
+      bank_code: ZH
+      account: '320776497740'
+      currency: RMB
+      source_prefix: BJ_ZH_RMB
+  HK:
+    name: 瑞拓思科技（香港）有限公司
+    accounts:
+    - bank: OCBC华侨银行有限公司北京分行
+      bank_code: OCBC
+      account: NRA7300079913
+      currency: USD
+      source_prefix: HK_OCBC_USD
