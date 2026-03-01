@@ -78,7 +78,7 @@ export async function syncTableSchema(tableId: string): Promise<TableSchema> {
       fieldId: field.field_id ?? field.field_name,
       fieldName: field.field_name,
       dataKey: getDataKey(field.field_name),
-      fieldType: Number(field.field_type ?? field.type ?? 1) || 1,
+      fieldType: Number(field.field_type as any ?? 1) || 1,
       uiType: field.ui_type ?? '',
       isPrimary: field.is_primary ?? false,
       isExtend: field.is_extend ?? false,

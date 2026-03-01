@@ -247,7 +247,7 @@ export async function runBankflowVerify(taskId: string): Promise<void> {
           status: 'completed',
           progress: 100,
           output: fullOutput.substring(0, 10000),
-          result: { output: output.substring(0, 2000) },
+          result: { output: output.substring(0, 2000) } as any,
         });
         resolve();
       } else {
